@@ -9,6 +9,8 @@ A reproducible PyTorch baseline: ResNet18 trained from scratch on CIFAR-10.
 | Validation (best) | 94.08% |
 | Test | 93.25% |
 
+Training curves: [Weights & Biases run](https://wandb.ai/rezahatami102-part-ai-research-center/resnet18-cifar10-baseline/runs/mdigmy2h)
+
 ## Setup
 
 - Model: torchvision ResNet18, stem adapted to 32x32 (3x3 conv, no maxpool), trained from scratch
