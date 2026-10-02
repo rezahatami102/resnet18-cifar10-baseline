@@ -2,6 +2,7 @@ import argparse
 import csv
 import random
 from pathlib import Path
+import wandb
 
 import numpy as np
 import torch
@@ -79,12 +80,16 @@ def main():
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--out", type=str, default="outputs/baseline")
+    p.add_argument("--wandb", action="store_true", help="enable Weights & Biases logging")
     args = p.parse_args()
 
     set_seed(args.seed)
     device = torch.device("cuda")
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    if args.wandb:
+        wandb.init(project="resnet18-cifar10-baseline", name=out_dir.name, config=vars(args))
 
     train_loader, val_loader, test_loader = get_loaders(args.batch_size, args.workers, args.seed)
     model = build_model().to(device)
@@ -120,6 +125,13 @@ def main():
         log_file.flush()
         print(f"epoch {epoch:3d} | train {train_loss:.4f}/{train_acc:.4f} | val {val_loss:.4f}/{val_acc:.4f}")
 
+        if args.wandb:
+            wandb.log({
+                "epoch": epoch,
+                "train/loss": train_loss, "train/acc": train_acc,
+                "val/loss": val_loss, "val/acc": val_acc,
+            })
+
         if val_acc > best_val:
             best_val = val_acc
             torch.save(model.state_dict(), out_dir / "best.pt")
@@ -129,6 +141,11 @@ def main():
     test_loss, test_acc = evaluate(model, test_loader, criterion, device)
     print(f"best val acc: {best_val:.4f} | TEST acc: {test_acc:.4f}")
     (out_dir / "test_result.txt").write_text(f"best_val_acc={best_val:.4f}\ntest_acc={test_acc:.4f}\n")
+
+    if args.wandb:
+        wandb.summary["best_val_acc"] = best_val
+        wandb.summary["test_acc"] = test_acc
+        wandb.finish()
 
 
 if __name__ == "__main__":
